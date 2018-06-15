@@ -1,0 +1,94 @@
+QFrame {
+    background: #FAFAFC;
+    border: none;
+}
+
+QLabel {
+    color: #FAFAFC;
+    font: bold;
+}
+
+QTabWidget {
+    background: #FAFAFC;
+    border: none;
+    margin-right: 5px;
+}
+
+QTabWidget::pane {
+    background: #FAFAFC;
+    border-top: 1px solid #B82525; 
+    padding-top: 10px;
+}
+
+QTabBar::tab{
+    margin-left: 25px;
+    width: 70px;
+    padding: 10px;
+    color: gray;
+    font-size: 13px;
+    font-weight: bold;
+    background: #FAFAFC;
+}
+
+QTabBar::tab:hover{
+    color: #DCDDE4;
+}
+
+QTabBar::tab:selected{
+    background: #FAFAFC;
+    color: #DCDDE4;
+}
+
+QTabWidget::tab-bar{
+    alignment: left;
+}
+
+QTableWidget {
+    background: #FAFAFC;
+    alternate-background-color: #FAFAFC;
+    border: none;
+    color: #16181C;
+}
+
+QTableWidget::item {
+    border: none;
+    outline: none;
+    outline-style: none;
+}
+
+QTableWidget::item:hover {
+    background: #FAFAFC;
+}
+
+QTableWidget::item:selected {
+    background: #DCDDE4;
+}
+
+/*去除虚线*/
+
+QAbstractItemView {
+    outline: none;
+}
+
+/*QTableWidget的顶部区域*/
+
+QHeaderView::section {
+    background-color: #FAFAFC;
+    color: 16181C;
+    border: none;
+    padding: 4px;
+    border-right: 1px solid #23262C;
+}
+
+QHeaderView::section:hover {
+    background-color: #DCDDE4;
+}
+
+QMenu {
+    background: #FAFAFC;
+    color: #D1D1D7;
+}
+
+QMenu::item:selected {
+    background: #FAFAFC;
+}
