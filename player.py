@@ -53,7 +53,7 @@ class Player(QFrame):
         self.set_labels()
         self.set_layout()
 
-        with open('.\\qss\\player.qss', 'r') as file_obj:
+        with open('.\\QSS\\player.qss', 'r') as file_obj:
             self.setStyleSheet(file_obj.read())
 
 

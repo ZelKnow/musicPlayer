@@ -51,7 +51,7 @@ class PlayList(QFrame):
         '''
 
         self.set_layout()
-        with open('.\\qss\\play_list.qss', 'r') as file_obj:
+        with open('.\\QSS\\play_list.qss', 'r') as file_obj:
             self.setStyleSheet(file_obj.read())
         self.hide()   
 
@@ -262,7 +262,7 @@ class PlayListTitle(QFrame):
         self.layout.setAlignment(self.title_label, Qt.AlignVCenter)
         self.layout.setAlignment(self.close_button, Qt.AlignVCenter)
 
-        with open('.\\qss\\play_list_title.qss', 'r') as file_obj:
+        with open('.\\QSS\\play_list_title.qss', 'r') as file_obj:
             self.setStyleSheet(file_obj.read())
         
 
@@ -303,7 +303,7 @@ class PlayListTable(QScrollArea):
         self.setWidgetResizable(True)
         self.setWidget(self.contents)
 
-        with open('.\\qss\\play_list_table.qss', 'r') as file_obj:
+        with open('.\\QSS\\play_list_table.qss', 'r') as file_obj:
             self.setStyleSheet(file_obj.read())
 
     
@@ -368,7 +368,7 @@ class ListEntry(QFrame):
         self.set_labels()
         self.set_layout()
 
-        with open('.\\qss\\list_entry.qss', 'r') as file_obj:
+        with open('.\\QSS\\list_entry.qss', 'r') as file_obj:
             self.setStyleSheet(file_obj.read())
 
 
