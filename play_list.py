@@ -1,13 +1,13 @@
+from PyQt5.QtWidgets import QPushButton, QFrame, QVBoxLayout, QHBoxLayout
+from PyQt5.QtWidgets import QLabel, QScrollArea, QScrollBar, QWidget
 from PyQt5.QtMultimedia import QMediaContent, QMediaMetaData
-from PyQt5.QtWidgets import *
-from PyQt5.QtCore import *
-from PyQt5.QtGui import *
+from PyQt5.QtGui import QPixmap, QFont
+from PyQt5.QtCore import QUrl, Qt, pyqtSignal
 from random import randint
 from play_mode import PlayMode
-from mutagen.mp3 import EasyMP3 as MP3
+from xlabel import XLabel
 import utils
 import enum
-import sys
 
 
 '''-------------------------------------------------------------------------'''
@@ -17,8 +17,7 @@ class PlayList(QFrame):
     播放列表
     '''
 
-    sig_list_changed = pyqtSignal()
-    sig_music_added = pyqtSignal(QUrl)
+    sig_music_added = pyqtSignal(dict)
     sig_music_index_changed = pyqtSignal()
 
     def __init__(self, parent):
@@ -31,6 +30,8 @@ class PlayList(QFrame):
         self.music_list = []
         self.music_count = 0
         self.play_mode = PlayMode.RANDOM
+
+        self.last_play = None
         self.music_index = None
 
         self.entries = []
@@ -67,10 +68,7 @@ class PlayList(QFrame):
 
     def set_connections(self):
         self.title.close_button.clicked.connect(self.hide)
-
-        self.sig_list_changed.connect(self.on_list_changed)
         self.sig_music_added.connect(self.on_music_added)
-
         '''
         由于ListEntry是动态创建、销毁的
         信号和槽的连接不放在这个函数中
@@ -83,57 +81,43 @@ class PlayList(QFrame):
         if mode in PlayMode:
             self.play_mode = mode
 
-    
-    def set_music_list(self, music_list, current_song=None):
-        '''
-        设置播放列表
-        music_list：新的播放列表
-        current_song：新的播放列表中将要播放的歌，类型是QUrl
-        '''
-        self.music_list = music_list
-        if current_song == None:
-            self.music_index = None
-        elif current_song in music_list:
-            self.music_index = music_list.index(current_song)
-        else:
-            self.music_index = None
-        
-        if music_list:
-            self.music_count = len(music_list)
-        else:
-            self.music_count = 0
 
-        self.sig_list_changed.emit()
-
-
-    def set_music_index(self, music_index):
-        if music_index >= 0 and music_index < len(self.music_list):
-            self.music_index = music_index
-
-
-    def add_music(self, song):
+    def add_music(self, music_info, play=False):
         '''
         向播放列表添加歌曲
-        song类型是str（表示一个URL）或QUrl
+        music_info类型是字典
+        music_info['url']
+        music_info['name']
+        music_info['time']
+        music_info['author']
+        music_info['music_img']
+        play标识是否立即播放
         '''
-        if isinstance(song, QUrl):
-            self.music_list.append(song)
-            self.music_count += 1
-            self.sig_music_added.emit(song)
+        url = music_info['url']
+        flag = False
 
-        elif isinstance(song, str):
+        if isinstance(url, QUrl):
+            flag = True
+
+        elif isinstance(url, str):
             '''
-            如果是本地文件的路径，一定要写fromLocalFile
+            如果是本地文件的路径，要写fromLocalFile
             否则直接用QUrl(song)无法正常播放
             '''
-            if 'http' in song or 'https' in song or 'file' in song:
-                url = QUrl(song)
+            if 'http' in url or 'https' in url or 'file' in url:
+                url = QUrl(url)
             else:
-                url = QUrl.fromLocalFile(song)
+                url = QUrl.fromLocalFile(url)
+            flag = True
+
+        if flag:
             self.music_list.append(url)
             self.music_count += 1
+            self.sig_music_added.emit(music_info)
 
-            self.sig_music_added.emit(url)
+            if play:
+                self.music_index = self.music_count - 1
+                self.sig_music_index_changed.emit()
 
 
     def get_music(self):
@@ -158,14 +142,16 @@ class PlayList(QFrame):
         if self.music_list and self.music_index != None:
             if self.play_mode == PlayMode.RANDOM:
                 next_index = randint(0, self.music_count - 1)
+
             elif self.play_mode == PlayMode.LOOP:
-                next_index -= 1
+                next_index  = self.music_index - 1
                 if next_index < 0:
                     next_index = self.music_count - 1
 
-            self.move_status_label(next_index)
-            self.music_index = next_index
+            elif self.play_mode == PlayMode.REPEAT:
+                next_index = self.music_index
 
+            self.music_index = next_index
             song_url = self.music_list[self.music_index]
             return QMediaContent(song_url)
         return None
@@ -176,81 +162,67 @@ class PlayList(QFrame):
         if self.music_list and self.music_index != None:
             if self.play_mode == PlayMode.RANDOM:
                 next_index = randint(0, self.music_count - 1)
+
             elif self.play_mode == PlayMode.LOOP:
-                next_index += 1
+                next_index = self.music_index + 1
                 if next_index >= self.music_count:
                     next_index = 0
 
-            self.move_status_label(next_index)
-            self.music_index = next_index
+            elif self.play_mode == PlayMode.REPEAT:
+                next_index = self.music_index
 
+            self.music_index = next_index
             song_url = self.music_list[self.music_index]
             return QMediaContent(song_url)
         return None
 
 
-    def create_entry(self, path):
-        '''把创建entry和连接信号和槽封装'''
-        entry = ListEntry(self.table, path, self.music_count - 1)
+    def create_entry(self, music_info):
+        '''把创建entry、连接信号和槽封装'''
+        entry = ListEntry(self.table, music_info, self.music_count - 1)
         entry.sig_double_clicked.connect(self.on_double_clicked)
-        self.entries.append(entry)
         return (entry, self.music_count - 1)
 
 
-    def move_status_label(self, index):
+    def on_music_added(self, music_info):
         '''
-        移动表项的播放/暂停图标
-        self.music_index还没有被修改的时候调用这个函数
+        播放列表添加了一首歌
+        创建新的ListEntry并添加到table中
+        此时self.music_count已经更新
         '''
-        if self.music_index != None:
-            self.entries[self.music_index].set_status_label(LabelImage.EMPTY)
-            
-            '''调整滚动条位置'''
-            if self.music_index != index:
-                self.table.ensureWidgetVisible(self.entries[index], 0, 200)
-
-        self.entries[index].set_status_label(LabelImage.PLAY)
-
-
-    def on_list_changed(self):
-        '''播放列表发生变化'''
-        pass
-
-
-    def on_music_added(self, url):
-        '''播放列表添加了一首歌'''
-        path = url.path()
-        path = path[1:]
-        # print(path)
-        entry, index = self.create_entry(path)
+        entry, index = self.create_entry(music_info)
+        self.entries.append(entry)
         self.table.insert_entry(entry, index)
 
 
     def on_double_clicked(self, index):
-        '''播放列表第index项被双击'''
+        '''
+        播放列表第index项被双击
+        处理ListEntry的sig_double_clicked信号
+        '''
         if index >=0 and index < self.music_count:
-            self.move_status_label(index)
             self.music_index = index
             '''使播放器切换歌曲'''
             self.sig_music_index_changed.emit()
 
+    
+    def on_music_status_changed(self, is_paused):
+        '''
+        当歌曲播放状态改变（切歌、播放、暂停）时
+        调整播放列表中的图片
+        '''
+        if self.last_play != None:
+            if self.last_play >= 0 and self.last_play < self.music_count:
+                self.entries[self.last_play].set_status_label(LabelImage.EMPTY)
+        self.last_play = self.music_index
 
-    def on_music_played(self):
-        '''
-        播放器的PlayButton被按下
-        相应的条目显示播放图标
-        '''
-        if self.music_index >= 0 and self.music_index < self.music_count:
-            self.entries[self.music_index].set_status_label(LabelImage.PLAY)
-
-
-    def on_music_paused(self):
-        '''
-        播放器的PauseButton被按下
-        相应的条目显示暂停图标
-        '''
-        if self.music_index >= 0 and self.music_index < self.music_count:
-            self.entries[self.music_index].set_status_label(LabelImage.PAUSE)
+        if self.music_index != None:
+            if self.music_index >= 0 and self.music_index < self.music_count:
+                if is_paused:
+                    self.entries[self.music_index].set_status_label(LabelImage.PAUSE)
+                else:
+                    self.entries[self.music_index].set_status_label(LabelImage.PLAY)
+                    self.table.ensureWidgetVisible(self.entries[self.music_index], 0, 300)
 
 
 '''-------------------------------------------------------------------------'''
@@ -316,7 +288,6 @@ class PlayListTable(QScrollArea):
         '''
         QScrollArea只能设置一个widget
         因此要在这一个widget上添加其他widget
-        比如ListEntry
         '''
         self.contents = QFrame(self)
         self.contents.setObjectName('Contents')
@@ -329,7 +300,6 @@ class PlayListTable(QScrollArea):
         self.setVerticalScrollBar(self.scroll_bar)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
-        '''这个语句非常关键'''
         self.setWidgetResizable(True)
         self.setWidget(self.contents)
 
@@ -372,18 +342,22 @@ class ListEntry(QFrame):
 
     sig_double_clicked = pyqtSignal(int)
 
-    def __init__(self, parent, path, index):
-        '''url类型为QUrl'''
+    def __init__(self, parent, music_info, index):
+        '''
+        music_info['url']  music_info['name']  music_info['time']
+        music_info['author']  music_info['music_img']
+        '''
+
         super().__init__(parent)
         self.setObjectName('ListEntry')
         
         '''标识这个条目在播放列表中的位置'''
         self.index = index
 
-        music_file = MP3(path)
-        self.music_title = music_file.tags['title'][0]
-        self.music_artist = music_file.tags['artist'][0]
-        self.music_duration = utils.convert_time(int(music_file.info.length))
+        self.music_title = music_info['name']
+        self.music_artist = music_info['author']
+        self.music_duration = music_info['time']
+        self.music_image = music_info['music_img']
 
         self.set_UI()
 
@@ -449,44 +423,7 @@ class ListEntry(QFrame):
 
         self.status_label.setScaledContents(True)
         self.status_label.setPixmap(pixmap)
+        self.status_label.setAlignment(Qt.AlignCenter)
 
 '''-------------------------------------------------------------------------'''
 '''-------------------------------------------------------------------------'''
-
-
-
-'''-------------------------------------------------------------------------'''
-'''-------------------------------------------------------------------------'''
-class XLabel(QLabel):
-    '''
-    自定义标签
-    自动调整字符串的显示
-    '''
-
-    def __init__(self, parent):
-        super().__init__(parent)
-        self.text = None
-
-        '''设置字体'''
-        font = QFont('YouYuan')
-        self.setFont(font)
-
-
-    def set_text(self, text):
-        self.text = text
-        self.setToolTip(self.text)
-
-
-    def resizeEvent(self, event):
-        '''调整显示长度'''
-        text_to_show = self.fontMetrics().elidedText(self.text,\
-            Qt.ElideRight, event.size().width())
-        self.setText(text_to_show)
-'''-------------------------------------------------------------------------'''
-'''-------------------------------------------------------------------------'''
-
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    test = PlayList()
-    test.show()
-    sys.exit(app.exec_())

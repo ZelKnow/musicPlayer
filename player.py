@@ -1,11 +1,9 @@
 from PyQt5.Qt import QApplication, QObject
 from PyQt5.QtWidgets import QFrame, QPushButton, QSlider, QHBoxLayout, QLabel
 from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent, QMediaPlaylist
+from PyQt5.QtGui import QFont
 from PyQt5.QtCore import QUrl, pyqtSignal, Qt
 import sys
-import os
-import re
-import threading
 import utils
 from play_mode import PlayMode
 from play_list import PlayList
@@ -18,6 +16,8 @@ class Player(QFrame):
     音乐播放器
     TODO 歌词系统
     '''
+
+    sig_music_status_changed = pyqtSignal(bool)
 
     def __init__(self, parent):
         super().__init__(parent)
@@ -106,6 +106,7 @@ class Player(QFrame):
         self.show_lyric_button = QPushButton(self)
         self.show_lyric_button.setObjectName('ShowLyricButton')
         self.show_lyric_button.setText('词')
+        self.show_lyric_button.setFont(QFont('YouYuan', 14))
         self.show_lyric_button.setToolTip('打开歌词')
 
         self.hide_lyric_button = QPushButton(self)
@@ -142,9 +143,11 @@ class Player(QFrame):
         '''
         self.time_label = QLabel(self)
         self.time_label.setObjectName('TimeLabel')
+        self.time_label.setFont(QFont('YouYuan'))
         
         self.duration_label = QLabel(self)
         self.duration_label.setObjectName('DurationLabel')
+        self.duration_label.setFont(QFont('YouYuan'))
 
 
     def set_layout(self):
@@ -232,9 +235,11 @@ class Player(QFrame):
 
         '''通过点击切歌'''
         self.play_list.sig_music_index_changed.connect(self.on_music_index_changed)
+        '''播放状态改变，同时改变图标'''
+        self.sig_music_status_changed.connect(self.play_list.on_music_status_changed)
         
-        self.play_button.clicked.connect(self.play_list.on_music_played)
-        self.pause_button.clicked.connect(self.play_list.on_music_paused)
+        # self.play_button.clicked.connect(self.play_list.on_music_played)
+        # self.pause_button.clicked.connect(self.play_list.on_music_paused)
 
 
     def on_random_clicked(self):
@@ -269,6 +274,7 @@ class Player(QFrame):
         if content:
             self.play_button.hide()
             self.pause_button.show()
+            self.sig_music_status_changed.emit(False)
 
 
     def on_play_clicked(self):
@@ -285,12 +291,14 @@ class Player(QFrame):
         if flag:
             self.play_button.hide()
             self.pause_button.show()
+            self.sig_music_status_changed.emit(False)
 
 
     def on_pause_clicked(self):
         self.music_player.pause()
         self.pause_button.hide()
         self.play_button.show()
+        self.sig_music_status_changed.emit(True)
 
 
     def on_next_clicked(self):
@@ -299,6 +307,7 @@ class Player(QFrame):
         if content:
             self.play_button.hide()
             self.pause_button.show()
+            self.sig_music_status_changed.emit(False)
 
 
     def on_mute_clicked(self):
@@ -364,12 +373,18 @@ class Player(QFrame):
 
 
     def on_music_index_changed(self):
-        '''通过播放列表切换歌曲'''
+        '''
+        播放列表中正在播放的歌曲切换了
+        有可能是通过点击播放列表切歌
+        也有可能是播放新加入的歌曲
+        '''
         content = self.play_list.get_music()
         self.play_music(content)
 
         self.pause_button.show()
         self.play_button.hide()
+
+        self.sig_music_status_changed.emit(False)
 
 
     def moveEvent(self, event):
@@ -389,9 +404,6 @@ class Player(QFrame):
     def play_music(self, content=None):
         if content:
             self.music_player.setMedia(content)
-        # url = QUrl.fromLocalFile('D:\\CloudMusic\\zun\\上海アリス幻樂団 - 少女幻葬 ～ Necro-Fantasy.mp3')
-        # content = QMediaContent(url)
-        # self.music_player.setMedia(content)
         self.music_player.play()
 
 
