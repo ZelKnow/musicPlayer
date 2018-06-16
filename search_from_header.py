@@ -4,7 +4,7 @@ from PyQt5.QtGui import *
 from asy_base import aAsync, toTask
 from widget import *
 from api import netease
-from SearchArea import SearchArea
+from search_area import SearchArea
 
 
 class ConfigHeader(QObject):

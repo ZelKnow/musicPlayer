@@ -82,7 +82,7 @@ class SearchArea(ScrollArea):
         super(SearchArea, self).__init__(self)
         self.parent = parent
         self.setObjectName("Search Area")
-        with open('QSS/searchArea.qss', 'r', encoding='utf-8') as f:
+        with open('QSS/search_area.qss', 'r', encoding='utf-8') as f:
             self.setStyleSheet(f.read())
         # self.frame = QFrame()
         self.mainLayout = QVBoxLayout(self.frame)

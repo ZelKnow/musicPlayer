@@ -9,7 +9,7 @@ import sys
 import addition
 
 from api import netease
-from SearchArea import *
+from search_area import *
 # from SearchResultTable import SearchResultTable
 
 class ConfigSearchArea(QObject):

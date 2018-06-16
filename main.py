@@ -11,9 +11,9 @@ from widget import Navigation,Header,MainContent,DetailSings
 from player import Player
 from function import ConfigNavigation,ConfigWindow,ConfigDetailSings
 
-from SearchFromHeader import ConfigHeader
-from SearchArea import SearchArea
-from ConfigSearchArea import ConfigSearchArea
+from search_from_header import ConfigHeader
+from search_area import SearchArea
+from config_search_area import ConfigSearchArea
 
 
 # 用于承载整个界面。所有窗口的父窗口，所有窗口都可以在父窗口里找到索引。
