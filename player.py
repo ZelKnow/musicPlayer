@@ -46,7 +46,7 @@ class Player(QFrame):
     def set_UI(self):
         self.setFrameShape(QFrame.NoFrame)
         self.setMinimumSize(1200, 80)
-        self.setMaximumSize(1500, 90)
+        self.setMaximumHeight(100)
 
         self.set_buttons()
         self.set_sliders()
@@ -266,6 +266,7 @@ class Player(QFrame):
         else:
             self.set_list_geometry()
             self.play_list.show()
+            self.play_list.raise_()
 
 
     def on_previous_clicked(self):
