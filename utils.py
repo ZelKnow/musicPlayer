@@ -30,8 +30,9 @@ def convert_lyric(lyric):
     res = []
     strings = lyric.split('[')
     for string in strings:
-        time, word = string.split(']')
-        millionsecond = time_str_to_int(time)
-        res.append(tuple(millionsecond, word))
+        if string:
+            time, word = string.split(']')
+            millionsecond = time_str_to_int(time)
+            res.append((millionsecond, word))
 
     return res
