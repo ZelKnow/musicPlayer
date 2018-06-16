@@ -18,7 +18,6 @@ class PlayList(QFrame):
     播放列表
     '''
 
-    sig_music_added = pyqtSignal(dict)
     sig_music_index_changed = pyqtSignal()
 
     def __init__(self, parent):
@@ -27,15 +26,18 @@ class PlayList(QFrame):
         self.setObjectName('PlayList')
         self.set_UI()
 
-        '''播放列表，元素是QUrl'''
+        '''播放列表，元素类型是QUrl'''
         self.music_list = []
+        '''列表条目，元素类型是ListEntry'''
+        self.entries = []
+        '''歌词，元素类型是str'''
+        self.lyrics = []
+        
         self.music_count = 0
         self.play_mode = PlayMode.RANDOM
 
         self.last_play = None
         self.music_index = None
-
-        self.entries = []
 
         self.set_connections()
     
@@ -69,7 +71,6 @@ class PlayList(QFrame):
 
     def set_connections(self):
         self.title.close_button.clicked.connect(self.hide)
-        self.sig_music_added.connect(self.on_music_added)
         '''
         由于ListEntry是动态创建、销毁的
         信号和槽的连接不放在这个函数中
@@ -112,9 +113,14 @@ class PlayList(QFrame):
             flag = True
 
         if flag:
-            self.music_list.append(url)
             self.music_count += 1
-            self.sig_music_added.emit(music_info)
+            self.music_list.append(url)
+
+            entry, index = self.create_entry(music_info)
+            self.entries.append(entry)
+            self.table.insert_entry(entry, index)
+
+            self.lyrics.append(music_info['lyric'])
 
             if play:
                 self.music_index = self.music_count - 1
@@ -183,17 +189,6 @@ class PlayList(QFrame):
         entry = ListEntry(self.table, music_info, self.music_count - 1)
         entry.sig_double_clicked.connect(self.on_double_clicked)
         return (entry, self.music_count - 1)
-
-
-    def on_music_added(self, music_info):
-        '''
-        播放列表添加了一首歌
-        创建新的ListEntry并添加到table中
-        此时self.music_count已经更新
-        '''
-        entry, index = self.create_entry(music_info)
-        self.entries.append(entry)
-        self.table.insert_entry(entry, index)
 
 
     def on_double_clicked(self, index):

@@ -111,6 +111,8 @@ class Player(QFrame):
 
         self.hide_lyric_button = QPushButton(self)
         self.hide_lyric_button.setObjectName('HideLyricButton')
+        self.hide_lyric_button.setText('词')
+        self.hide_lyric_button.setFont(QFont('YouYuan', 14))
         self.hide_lyric_button.setToolTip('关闭歌词')
         self.hide_lyric_button.hide()
 
@@ -202,8 +204,8 @@ class Player(QFrame):
         self.layout.setStretchFactor(self.loop_button, 2)
         self.layout.setStretchFactor(self.random_button, 2)
         self.layout.setStretchFactor(self.repeat_button, 2)
-        self.layout.setStretchFactor(self.show_lyric_button, 2)
-        self.layout.setStretchFactor(self.hide_lyric_button, 2)
+        # self.layout.setStretchFactor(self.show_lyric_button, 2)
+        # self.layout.setStretchFactor(self.hide_lyric_button, 2)
         self.layout.setStretchFactor(self.list_button, 2)
 
         self.setLayout(self.layout)
@@ -226,6 +228,9 @@ class Player(QFrame):
 
         self.mute_button.clicked.connect(self.on_mute_clicked)
         self.recover_button.clicked.connect(self.on_recover_clicked)
+
+        self.show_lyric_button.clicked.connect(self.on_show_lyric_clicked)
+        self.hide_lyric_button.clicked.connect(self.on_hide_lyric_clicked)
 
         self.music_player.durationChanged.connect(self.on_music_changed)
 
@@ -324,10 +329,10 @@ class Player(QFrame):
 
 
     def on_music_changed(self):
-        self.time_label.setText(utils.convert_time(0))
+        self.time_label.setText(utils.time_int_to_str(0))
         total_time = self.music_player.duration() // 1000
         if total_time > 0:
-            self.duration_label.setText(utils.convert_time(total_time))
+            self.duration_label.setText(utils.time_int_to_str(total_time))
 
             '''处理没有连接的异常'''
             try:
@@ -348,7 +353,7 @@ class Player(QFrame):
 
     
     def on_second_changed(self):
-        self.time_label.setText(utils.convert_time(self.position))
+        self.time_label.setText(utils.time_int_to_str(self.position))
 
         '''处理没有连接的异常，disconnect和connect必须配对使用，否则听歌体验极差'''
         try:
@@ -386,6 +391,16 @@ class Player(QFrame):
         self.play_button.hide()
 
         self.sig_music_status_changed.emit(False)
+
+
+    def on_show_lyric_clicked(self):
+        self.show_lyric_button.hide()
+        self.hide_lyric_button.show()
+
+
+    def on_hide_lyric_clicked(self):
+        self.hide_lyric_button.hide()
+        self.show_lyric_button.show()
 
 
     def moveEvent(self, event):
