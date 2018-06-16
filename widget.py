@@ -288,7 +288,7 @@ class SearchLineEdit(QLineEdit):
         self.setObjectName("SearchLine")
         self.parent = parent
         self.setMinimumSize(218, 20)
-        with open('QSS/searchLine.qss', 'r') as f:
+        with open('QSS/search_line.qss', 'r') as f:
             self.setStyleSheet(f.read())
 
         self.button = QPushButton(self)
@@ -323,7 +323,7 @@ class MainContent(ScrollArea):
 
         # 连接导航栏的按钮。
         # self.parent.navigation.navigationListFunction = self.navigationListFunction
-        with open("QSS/mainContent.qss", 'r', encoding='utf-8') as f:
+        with open("QSS/main_content.qss", 'r', encoding='utf-8') as f:
             self.style = f.read()
             self.setStyleSheet(self.style)
 
@@ -368,7 +368,7 @@ class DetailSings(ScrollArea):
         # self.hide()
         self.parent = parent
         self.setObjectName('detailSings')
-        with open('QSS/detailSings.qss', 'r', encoding='utf-8') as f:
+        with open('QSS/detail_sings.qss', 'r', encoding='utf-8') as f:
             self.setStyleSheet(f.read())
 
         self.setLabels()

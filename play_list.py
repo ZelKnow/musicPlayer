@@ -5,13 +5,14 @@ from PyQt5.QtGui import QPixmap, QFont
 from PyQt5.QtCore import QUrl, Qt, pyqtSignal
 from random import randint
 from play_mode import PlayMode
-from xlabel import XLabel
 import utils
 import enum
 
 
 '''-------------------------------------------------------------------------'''
 '''-------------------------------------------------------------------------'''
+
+
 class PlayList(QFrame):
     '''
     播放列表
@@ -229,9 +230,6 @@ class PlayList(QFrame):
 '''-------------------------------------------------------------------------'''
 
 
-
-'''-------------------------------------------------------------------------'''
-'''-------------------------------------------------------------------------'''
 class PlayListTitle(QFrame):
     '''播放列表的标题'''
 
@@ -270,9 +268,6 @@ class PlayListTitle(QFrame):
 '''-------------------------------------------------------------------------'''
 
 
-
-'''-------------------------------------------------------------------------'''
-'''-------------------------------------------------------------------------'''
 class PlayListTable(QScrollArea):
     '''播放列表主体'''
     
@@ -323,15 +318,16 @@ class PlayListTable(QScrollArea):
 '''-------------------------------------------------------------------------'''
 
 
-
-'''-------------------------------------------------------------------------'''
-'''-------------------------------------------------------------------------'''
 @enum.unique
 class LabelImage(enum.Enum):
     '''标签图像'''
     EMPTY = 0
     PLAY = 1
     PAUSE = 2
+
+
+'''-------------------------------------------------------------------------'''
+'''-------------------------------------------------------------------------'''
 
 
 class ListEntry(QFrame):
@@ -425,5 +421,33 @@ class ListEntry(QFrame):
         self.status_label.setPixmap(pixmap)
         self.status_label.setAlignment(Qt.AlignCenter)
 
+
 '''-------------------------------------------------------------------------'''
 '''-------------------------------------------------------------------------'''
+
+
+class XLabel(QLabel):
+    '''
+    自定义标签
+    自动调整字符串的显示
+    '''
+
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.text = None
+
+        '''设置字体'''
+        font = QFont('YouYuan')
+        self.setFont(font)
+
+
+    def set_text(self, text):
+        self.text = text
+        self.setToolTip(self.text)
+
+
+    def resizeEvent(self, event):
+        '''调整显示长度'''
+        text_to_show = self.fontMetrics().elidedText(self.text,\
+            Qt.ElideRight, event.size().width())
+        self.setText(text_to_show)
