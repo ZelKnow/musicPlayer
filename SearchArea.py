@@ -4,27 +4,8 @@ __author__ = 'HYA'
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
-from widget import ScrollArea
+from widget import ScrollArea, VBoxLayout, HBoxLayout
 import sys
-
-
-# 去除了margin和spacing的布局框。
-class VBoxLayout(QVBoxLayout):
-
-    def __init__(self, *args):
-        super(VBoxLayout, self).__init__(*args)
-
-        self.setContentsMargins(0, 0, 0, 0)
-        self.setSpacing(0)
-
-
-class HBoxLayout(QHBoxLayout):
-
-    def __init__(self, *args):
-        super(HBoxLayout, self).__init__(*args)
-
-        self.setContentsMargins(0, 0, 0, 0)
-        self.setSpacing(0)
 
 
 class TableWidget(QTableWidget):
