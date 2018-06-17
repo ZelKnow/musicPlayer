@@ -97,9 +97,13 @@ class PlayList(QFrame):
         '''
         url = music_info['url']
         flag = False
+        duplicate = False
 
         if isinstance(url, QUrl):
-            flag = True
+            if url not in self.music_list:
+                flag = True
+            else:
+                duplicate = True
 
         elif isinstance(url, str):
             '''
@@ -110,7 +114,10 @@ class PlayList(QFrame):
                 url = QUrl(url)
             else:
                 url = QUrl.fromLocalFile(url)
-            flag = True
+            if url not in self.music_list:
+                flag = True
+            else:
+                duplicate = True
 
         if flag:
             self.music_count += 1
@@ -126,6 +133,10 @@ class PlayList(QFrame):
             if play:
                 self.music_index = self.music_count - 1
                 self.sig_music_index_changed.emit()
+        
+        if play and duplicate:
+            self.music_index = self.music_list.index(url)
+            self.sig_music_index_changed.emit()
 
 
     def get_music(self):
@@ -411,7 +422,8 @@ class ListEntry(QFrame):
 
     def mouseDoubleClickEvent(self, event):
         # print(self.index)
-        self.sig_double_clicked.emit(self.index)
+        if event.button() == Qt.LeftButton:
+            self.sig_double_clicked.emit(self.index)
 
 
     def set_status_label(self, image):
