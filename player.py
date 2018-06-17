@@ -1,8 +1,8 @@
 from PyQt5.Qt import QApplication, QObject
-from PyQt5.QtWidgets import QFrame, QPushButton, QSlider, QHBoxLayout, QLabel
+from PyQt5.QtWidgets import QFrame, QPushButton, QSlider, QHBoxLayout, QLabel, QVBoxLayout
 from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent, QMediaPlaylist
 from PyQt5.QtGui import QFont
-from PyQt5.QtCore import QUrl, pyqtSignal, Qt
+from PyQt5.QtCore import QUrl, pyqtSignal, Qt, QTimer
 import sys
 import utils
 from play_mode import PlayMode
@@ -38,7 +38,10 @@ class Player(QFrame):
         '''
         self.play_list = PlayList(parent)
         '''播放进度'''
-        self.position = 0
+        self.millionsecond = 0
+        self.second = 0
+
+        self.lyric_panel = LyricPanel()
 
         self.set_connections()
 
@@ -111,6 +114,8 @@ class Player(QFrame):
 
         self.hide_lyric_button = QPushButton(self)
         self.hide_lyric_button.setObjectName('HideLyricButton')
+        self.hide_lyric_button.setText('词')
+        self.hide_lyric_button.setFont(QFont('YouYuan', 14))
         self.hide_lyric_button.setToolTip('关闭歌词')
         self.hide_lyric_button.hide()
 
@@ -202,8 +207,8 @@ class Player(QFrame):
         self.layout.setStretchFactor(self.loop_button, 2)
         self.layout.setStretchFactor(self.random_button, 2)
         self.layout.setStretchFactor(self.repeat_button, 2)
-        self.layout.setStretchFactor(self.show_lyric_button, 2)
-        self.layout.setStretchFactor(self.hide_lyric_button, 2)
+        # self.layout.setStretchFactor(self.show_lyric_button, 2)
+        # self.layout.setStretchFactor(self.hide_lyric_button, 2)
         self.layout.setStretchFactor(self.list_button, 2)
 
         self.setLayout(self.layout)
@@ -227,9 +232,13 @@ class Player(QFrame):
         self.mute_button.clicked.connect(self.on_mute_clicked)
         self.recover_button.clicked.connect(self.on_recover_clicked)
 
+        self.show_lyric_button.clicked.connect(self.on_show_lyric_clicked)
+        self.hide_lyric_button.clicked.connect(self.on_hide_lyric_clicked)
+
         self.music_player.durationChanged.connect(self.on_music_changed)
 
         self.music_player.positionChanged.connect(self.on_millionsecond_changed)
+        self.music_player.positionChanged.connect(self.lyric_panel.on_millionsecond_changed)
         self.progress_slider.valueChanged.connect(self.on_progress_changed)
         self.volume_slider.valueChanged.connect(self.on_volume_changed)
 
@@ -294,12 +303,18 @@ class Player(QFrame):
             self.pause_button.show()
             self.sig_music_status_changed.emit(False)
 
+            if self.lyric_panel.isVisible():
+                self.lyric_panel.restart_lyric()
+
 
     def on_pause_clicked(self):
         self.music_player.pause()
         self.pause_button.hide()
         self.play_button.show()
         self.sig_music_status_changed.emit(True)
+
+        if self.lyric_panel.isVisible():
+                self.lyric_panel.pause_lyric()
 
 
     def on_next_clicked(self):
@@ -324,10 +339,10 @@ class Player(QFrame):
 
 
     def on_music_changed(self):
-        self.time_label.setText(utils.convert_time(0))
+        self.time_label.setText(utils.time_int_to_str(0))
         total_time = self.music_player.duration() // 1000
         if total_time > 0:
-            self.duration_label.setText(utils.convert_time(total_time))
+            self.duration_label.setText(utils.time_int_to_str(total_time))
 
             '''处理没有连接的异常'''
             try:
@@ -339,16 +354,23 @@ class Player(QFrame):
                 self.progress_slider.setRange(0, total_time)
                 self.progress_slider.setValue(0)
 
+            if self.lyric_panel.isVisible():
+                lyric, title = self.play_list.get_lyric_and_title()
+                current_time = 0
+                total_time = self.music_player.duration()
+                self.lyric_panel.show_lyric(lyric, title, current_time, total_time)
+
 
     def on_millionsecond_changed(self, current_position):
+        self.millionsecond = current_position
         current_position = current_position // 1000
-        if current_position != self.position:
-            self.position = current_position
+        if current_position != self.second:
+            self.second = current_position
             self.on_second_changed()
 
     
     def on_second_changed(self):
-        self.time_label.setText(utils.convert_time(self.position))
+        self.time_label.setText(utils.time_int_to_str(self.second))
 
         '''处理没有连接的异常，disconnect和connect必须配对使用，否则听歌体验极差'''
         try:
@@ -388,6 +410,25 @@ class Player(QFrame):
         self.sig_music_status_changed.emit(False)
 
 
+    def on_show_lyric_clicked(self):
+        self.show_lyric_button.hide()
+        self.hide_lyric_button.show()
+
+        if self.music_player.mediaStatus() != QMediaPlayer.NoMedia:
+            lyric, title = self.play_list.get_lyric_and_title()
+            current_time = self.millionsecond
+            total_time = self.music_player.duration()
+            self.lyric_panel.show_lyric(lyric, title, current_time, total_time)
+        else:
+            self.lyric_panel.show_lyric(None, None, None, None)
+
+
+    def on_hide_lyric_clicked(self):
+        self.hide_lyric_button.hide()
+        self.show_lyric_button.show()
+        self.lyric_panel.hide_lyric()
+
+
     def moveEvent(self, event):
         self.set_list_geometry()
 
@@ -413,5 +454,154 @@ class Player(QFrame):
         y = self.y() - self.play_list.height()
         self.play_list.move(x, y)
 
+
 '''-------------------------------------------------------------------------'''
 '''-------------------------------------------------------------------------'''
+
+
+class LyricPanel(QFrame):
+    '''歌词面板'''
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setObjectName('LyricPanel')
+        self.set_UI()
+
+
+    def set_UI(self):
+        self.setWindowFlags(Qt.Window | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
+        self.setFrameShape(QFrame.NoFrame)
+        self.setFixedHeight(100)
+        self.setFixedWidth(800)
+        self.setAttribute(Qt.WA_TranslucentBackground)
+
+        desktop = QApplication.desktop()
+        desktop_rect = desktop.screenGeometry()
+        self.move((desktop_rect.width() - 800) // 2, 0)
+
+        self.set_labels()
+        self.set_layout()
+
+        self.hide()
+
+        with open('QSS\\lyric_panel.qss', 'r') as file_obj:
+            self.setStyleSheet(file_obj.read())
+
+
+    def set_labels(self):
+        self.lyric_label = LLabel(self)
+        self.lyric_label.setObjectName('LyricLabel')
+
+
+    def set_layout(self):
+        self.layout = QVBoxLayout()
+        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layout.addWidget(self.lyric_label)
+        
+        self.setLayout(self.layout)
+
+
+    def show_lyric(self, lyric, title, current_time, total_time):
+        self.lyric_label.show_lyric(lyric, title, current_time, total_time)
+        self.show()
+
+
+    def hide_lyric(self):
+        self.lyric_label.stop_timer()
+        self.hide()
+
+
+    def pause_lyric(self):
+        if self.lyric_label.timer:
+            self.lyric_label.timer.stop()
+
+
+    def restart_lyric(self):
+        if self.lyric_label.timer:
+            self.lyric_label.timer.start(30)
+
+
+    def on_millionsecond_changed(self, current_time):
+        self.lyric_label.time = current_time
+
+
+'''-------------------------------------------------------------------------'''
+'''-------------------------------------------------------------------------'''
+
+
+class LLabel(QLabel):
+    '''歌词标签'''
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setObjectName('LLabel')
+        self.set_UI()
+
+        self.lyric = None
+        self.lyric_length = None
+        # self.lyric_width = 0
+        # self.mask_width = 0
+        self.index = 0
+        self.timer = None
+        self.time = None
+
+
+    def set_UI(self):
+        self.set_font()
+        self.setAlignment(Qt.AlignVCenter | Qt.AlignHCenter)
+        self.setAttribute(Qt.WA_TranslucentBackground)
+        
+
+    def set_font(self):
+        self.font = QFont('微软雅黑', 30)
+        self.font.setBold(True)
+        self.setFont(self.font)
+
+
+    def show_lyric(self, lyric, title, current_time, total_time):
+        '''从current_time开始显示歌词'''
+        self.lyric = lyric
+        self.time = current_time
+
+        if lyric:
+            '''歌词存在则显示歌词'''
+            idx = 0
+            size = len(lyric)
+            while idx < size and lyric[idx][0] < current_time:
+                idx += 1
+            
+            idx = max(idx - 1, 0)
+            self.index = idx
+            self.lyric_length = size
+            self.setText(lyric[idx][1])
+
+            '''设置定时器'''
+            if self.timer != None:
+                del self.timer
+            self.timer = QTimer(self)
+            self.timer.timeout.connect(self.on_timeout)
+            self.timer.start(30)
+
+        elif title:
+            '''歌词不存在，显示歌名'''
+            self.index = None
+            self.setText(title)
+
+        else:
+            '''没有音乐正在播放'''
+            self.index = None
+            self.setText('KASW Music Player')
+
+
+    def stop_timer(self):
+        if self.timer:
+            self.timer.stop()
+            del self.timer
+            self.timer = None
+
+
+    def on_timeout(self):
+        if self.index < self.lyric_length - 1:
+            if self.lyric[self.index + 1][0] < self.time:
+                self.index += 1
+                self.setText(self.lyric[self.index][1])
