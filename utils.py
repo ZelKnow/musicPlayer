@@ -27,9 +27,13 @@ def convert_lyric(lyric):
     参数为字符串 '[mm:ss.ss(s)]str[mm:ss.ss(s)]str...'
     返回列表 [(millionsecond, str), (millionsecond, str), ...]
     '''
+    if lyric == None:
+        return None
+    
     res = []
     strings = lyric.split('[')
     for string in strings:
+        string = string.strip()
         if string:
             time, word = string.split(']')
             millionsecond = time_str_to_int(time)

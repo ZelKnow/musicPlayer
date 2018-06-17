@@ -120,7 +120,8 @@ class PlayList(QFrame):
             self.entries.append(entry)
             self.table.insert_entry(entry, index)
 
-            self.lyrics.append(music_info['lyric'])
+            lyric = utils.convert_lyric(music_info['lyric'])
+            self.lyrics.append(lyric)
 
             if play:
                 self.music_index = self.music_count - 1
@@ -189,6 +190,15 @@ class PlayList(QFrame):
         entry = ListEntry(self.table, music_info, self.music_count - 1)
         entry.sig_double_clicked.connect(self.on_double_clicked)
         return (entry, self.music_count - 1)
+
+
+    def get_lyric_and_title(self):
+        if self.music_index == None:
+            return None
+        
+        lyric = self.lyrics[self.music_index]
+        title = self.entries[self.music_index].get_music_title()
+        return (lyric, title)
 
 
     def on_double_clicked(self, index):
@@ -415,6 +425,10 @@ class ListEntry(QFrame):
         self.status_label.setScaledContents(True)
         self.status_label.setPixmap(pixmap)
         self.status_label.setAlignment(Qt.AlignCenter)
+
+
+    def get_music_title(self):
+        return self.music_title
 
 
 '''-------------------------------------------------------------------------'''
