@@ -33,10 +33,12 @@ def convert_lyric(lyric):
     res = []
     strings = lyric.split('[')
     for string in strings:
+        string = string.replace('\\n', '')
         string = string.strip()
         if string:
             time, word = string.split(']')
             millionsecond = time_str_to_int(time)
-            res.append((millionsecond, word))
+            if word:
+                res.append((millionsecond, word))
 
     return res

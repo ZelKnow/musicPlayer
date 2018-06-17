@@ -38,7 +38,8 @@ class Player(QFrame):
         '''
         self.play_list = PlayList(parent)
         '''播放进度'''
-        self.position = 0
+        self.millionsecond = 0
+        self.second = 0
 
         self.lyric_panel = LyricPanel()
 
@@ -237,6 +238,7 @@ class Player(QFrame):
         self.music_player.durationChanged.connect(self.on_music_changed)
 
         self.music_player.positionChanged.connect(self.on_millionsecond_changed)
+        self.music_player.positionChanged.connect(self.lyric_panel.on_millionsecond_changed)
         self.progress_slider.valueChanged.connect(self.on_progress_changed)
         self.volume_slider.valueChanged.connect(self.on_volume_changed)
 
@@ -348,14 +350,15 @@ class Player(QFrame):
 
 
     def on_millionsecond_changed(self, current_position):
+        self.millionsecond = current_position
         current_position = current_position // 1000
-        if current_position != self.position:
-            self.position = current_position
+        if current_position != self.second:
+            self.second = current_position
             self.on_second_changed()
 
     
     def on_second_changed(self):
-        self.time_label.setText(utils.time_int_to_str(self.position))
+        self.time_label.setText(utils.time_int_to_str(self.second))
 
         '''处理没有连接的异常，disconnect和connect必须配对使用，否则听歌体验极差'''
         try:
@@ -401,7 +404,7 @@ class Player(QFrame):
 
         if self.music_player.mediaStatus() != QMediaPlayer.NoMedia:
             lyric, title = self.play_list.get_lyric_and_title()
-            current_time = self.position
+            current_time = self.millionsecond
             total_time = self.music_player.duration()
             self.lyric_panel.show_lyric(lyric, title, current_time, total_time)
         else:
@@ -492,6 +495,10 @@ class LyricPanel(QFrame):
         self.hide()
 
 
+    def on_millionsecond_changed(self, current_time):
+        self.lyric_label.set_time(current_time)
+
+
 '''-------------------------------------------------------------------------'''
 '''-------------------------------------------------------------------------'''
 
@@ -565,6 +572,10 @@ class LLabel(QLabel):
             self.timer.stop()
             del self.timer
             self.timer = None
+
+
+    def set_time(self, current_time):
+        self.time = current_time
 
 
     def on_timeout(self):
