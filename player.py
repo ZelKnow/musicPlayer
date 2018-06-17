@@ -475,6 +475,10 @@ class LyricPanel(QFrame):
         self.setFixedWidth(800)
         self.setAttribute(Qt.WA_TranslucentBackground)
 
+        desktop = QApplication.desktop()
+        desktop_rect = desktop.screenGeometry()
+        self.move((desktop_rect.width() - 800) // 2, 0)
+
         self.set_labels()
         self.set_layout()
 
