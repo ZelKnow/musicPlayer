@@ -303,12 +303,18 @@ class Player(QFrame):
             self.pause_button.show()
             self.sig_music_status_changed.emit(False)
 
+            if self.lyric_panel.isVisible():
+                self.lyric_panel.restart_lyric()
+
 
     def on_pause_clicked(self):
         self.music_player.pause()
         self.pause_button.hide()
         self.play_button.show()
         self.sig_music_status_changed.emit(True)
+
+        if self.lyric_panel.isVisible():
+                self.lyric_panel.pause_lyric()
 
 
     def on_next_clicked(self):
@@ -347,6 +353,12 @@ class Player(QFrame):
             except TypeError:
                 self.progress_slider.setRange(0, total_time)
                 self.progress_slider.setValue(0)
+
+            if self.lyric_panel.isVisible():
+                lyric, title = self.play_list.get_lyric_and_title()
+                current_time = 0
+                total_time = self.music_player.duration()
+                self.lyric_panel.show_lyric(lyric, title, current_time, total_time)
 
 
     def on_millionsecond_changed(self, current_position):
@@ -495,8 +507,18 @@ class LyricPanel(QFrame):
         self.hide()
 
 
+    def pause_lyric(self):
+        if self.lyric_label.timer:
+            self.lyric_label.timer.stop()
+
+
+    def restart_lyric(self):
+        if self.lyric_label.timer:
+            self.lyric_label.timer.start(30)
+
+
     def on_millionsecond_changed(self, current_time):
-        self.lyric_label.set_time(current_time)
+        self.lyric_label.time = current_time
 
 
 '''-------------------------------------------------------------------------'''
@@ -544,7 +566,7 @@ class LLabel(QLabel):
             while idx < size and lyric[idx][0] < current_time:
                 idx += 1
             
-            idx -= 1
+            idx = max(idx - 1, 0)
             self.index = idx
             self.lyric_length = size
             self.setText(lyric[idx][1])
@@ -574,12 +596,7 @@ class LLabel(QLabel):
             self.timer = None
 
 
-    def set_time(self, current_time):
-        self.time = current_time
-
-
     def on_timeout(self):
-        self.time += 30
         if self.index < self.lyric_length - 1:
             if self.lyric[self.index + 1][0] < self.time:
                 self.index += 1

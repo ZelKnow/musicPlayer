@@ -11,14 +11,14 @@ QScrollBar:vertical{
 }
 
 QScrollBar::handle:vertical{
-    background-color: rgba(0,0,0,25%);
+    background-color: rgba(0, 0, 0, 25%);
     width: 8px;
     border-radius: 4px;
     min-height: 30px;
 }
 
 QScrollBar::handle:vertical:hover{
-    background-color: rgba(0,0,0,50%);
+    background-color: rgba(0, 0, 0, 50%);
 }
 
 QScrollBar::add-line:vertical{
