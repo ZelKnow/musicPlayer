@@ -1,9 +1,12 @@
+#coding = UTF-8
 import os
 import sys
 import json
 import base64
 import binascii
-from Crypto.Cipher import AES
+from random import random
+from time import time
+from Cryptodome.Cipher import AES
 import requests
 from requests.exceptions import RequestException, Timeout, ProxyError
 from requests.exceptions import ConnectionError as ConnectionException
@@ -23,7 +26,7 @@ class Song(object):
 
     def __init__(self, song_id, song_name, artist_id=None, artist_name=None, 
                  album_id=None, album_name=None, pop=None, song_lyric=None,
-                 song_url=None):
+                 song_url=None, media_id=None):
         self.song_id = song_id
         self.song_name = song_name
         self.artist_id = artist_id
@@ -33,6 +36,7 @@ class Song(object):
         self.pop = pop
         self.song_lyric = '' if song_lyric is None else song_lyric
         self.song_url = '' if song_url is None else song_url
+        self.media_id = media_id 
 
 class Album(object):
 
@@ -137,7 +141,7 @@ class Crawler(object):
 
 
 
-    def search(self, search_content, search_type=1, limit=100):
+    def search(self, search_content, search_type, limit=100):
         """Search entrance.
 
         :params search_content: search content.
@@ -150,7 +154,7 @@ class Crawler(object):
         params = {'s': search_content, 'type': search_type, 'offset': 0,
                   'sub': 'false', 'limit': limit}
         result = self.post_request(url, params)
-        return result['result']
+        return result
 
     def search_song(self, song_name, quiet=False, limit=100):
         """Search song by song name.
@@ -233,6 +237,66 @@ class Crawler(object):
             album = Album(album_id, album_name, artist_id, artist_name)
             result.append(album)
         return result
+
+    def search_song_qq(self, key_word ,num=20):
+        ''' 根据关键词查找歌曲 '''
+        url = 'https://c.y.qq.com/soso/fcgi-bin/client_search_cp?new_json=1&aggr=1&cr=1&flag_qc=0&p=1&n={}&w={}'.format(num, key_word)
+        result = requests.get(url)
+        data_list = json.loads(result.text[9:-1])['data']['song']['list']
+        song_list = []
+        print(data_list)
+        for line in data_list:
+            media_id = line['file']['media_mid']
+            song_id = line['mid']
+            song_name = line['title']
+            artist_name = line['singer'][0]['name']
+            artist_id = line['singer'][0]['mid']
+            album_name = line['album']['name']
+            album_id = line['album']['mid']
+            song = Song(media_id=media_id, song_id=song_id, artist_id=artist_id, album_id=album_id,
+                        song_name=song_name, artist_name=artist_name, album_name=album_name)
+            song_list.append(song)
+        return song_list
+
+
+    def _get_vkey(self,media_id,song_id,filename,guid):
+        ''' 获取指定歌曲的vkey值 '''
+
+        url = 'https://c.y.qq.com/base/fcgi-bin/fcg_music_express_mobile3.fcg?'
+        url += 'format=json&platform=yqq&cid=205361747&songmid=%s&filename=%s&guid=%s' \
+            % (song_id, filename, guid)
+        rst = requests.get(url)
+        vkey = json.loads(rst.text)['data']['items'][0]['vkey']
+        return vkey
+
+
+
+    def get_song_url_qq(self,media_id,song_id):
+        guid = int(random() * 2147483647) * int(time() * 1000) % 10000000000
+        filename = "C400%s.m4a" % media_id
+        url = 'http://dl.stream.qqmusic.qq.com/%s?' % filename
+        try:
+            music_url = url + \
+                'vkey=%s&guid=%s&fromtag=30' % (self._get_vkey(media_id,song_id,filename,guid), guid)
+        except json.decoder.JSONDecodeError:
+            music_url = url + \
+                'vkey=%s&guid=%s&fromtag=30' % (self._get_vkey(media_id,song_id,filename,guid), guid)
+        return music_url
+
+    def get_song_lyric_qq(self,media_id,song_id):
+        headers = {
+            "Referer": "https://y.qq.com/portal/player.html",
+            "Cookie": "skey=@LVJPZmJUX; p",
+        }
+        lrc_data = requests.get(
+            'https://c.y.qq.com/lyric/fcgi-bin/fcg_query_lyric_new.fcg?g_tk=753738303&songmid=' + song_id, headers=headers)
+        if lrc_data.status_code != 200:
+            print('歌词不存在或网络错误')
+            return False
+        lrc_dict = json.loads(lrc_data.text[18:-1])
+        lrc_data = base64.b64decode(lrc_dict['lyric'])
+        return lrc_data.decode()
+
     '''
     def get_album_songs(self, album_id):
         """Get a album's all songs.
@@ -258,13 +322,4 @@ class Crawler(object):
             song = Song(song_id, song_name, artist_id, artist_name, album_id, album_name, pop)
             result.append(song)
         return result
-        '''
-
-
-netease = Crawler()
-
-if __name__ == '__main__':
-    a = Crawler()
-    res = a.search('周杰伦')
-    id = res['songs'][0]['id']
-    print(a.get_song_url(id))
+    '''
